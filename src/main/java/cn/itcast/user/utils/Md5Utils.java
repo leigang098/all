@@ -1,78 +1,129 @@
 package cn.itcast.user.utils;
 
+
+import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import org.apache.axis2.databinding.types.NCName;
+import org.apache.axis2.util.XMLChar;
+
 /**
- * 写一个MD5算法,运行结果与MySQL的md5()函数相同
- * 将明文密码转成MD5密码
- * 123456->e10adc3949ba59abbe56e057f20f883e
+ * MD5转换工具类
+ *
+ * @since  2018年11月6日
+ * @author 陈锡伟
+ *
  */
-public final class Md5Utils {
-    private Md5Utils() {
+public class Md5Utils {
+	
+	/**
+	 * 使用axis2将字符串转成md5码
+	 * 
+	 * @param input
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws UnsupportedEncodingException
+	 *
+	 * @变更记录 2018年11月6日 下午4:07:26 陈锡伟 创建
+	 *
+	 */
+	public static String md5SumAxis2(String input) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    	return md5Sum(toXmlId(input).getBytes("utf-8"));
+	}
+	
+    private static String md5Sum(final byte[] input) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        final byte[] digest = md.digest(input);
+        return byteArrayToHexString(digest);
     }
-
-    /**
-     * 将明文密码转成MD5密码
-     */
-    public static String encodeByMd5(String password) {
-        try {
-            //Java中MessageDigest类封装了MD5和SHA算法，今天我们只要MD5算法
-            MessageDigest md5 = MessageDigest.getInstance("MD5");
-            //调用MD5算法，即返回16个byte类型的值
-            byte[] byteArray = md5.digest(password.getBytes());
-            //注意：MessageDigest只能将String转成byte[]，接下来的事情，由我们程序员来完成
-            password = byteArrayToHexString(byteArray);
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+    
+    private static String toXmlId(final String name) {
+        if (NCName.isValid(name)) {
+            return name;
         }
-        return password;
-    }
-
-    /**
-     * 将byte[]转在16进制字符串
-     */
-    private static String byteArrayToHexString(byte[] byteArray) {
-        StringBuffer sb = new StringBuffer();
-        //遍历
-        for (byte b : byteArray) {//16次
-            //取出每一个byte类型，进行转换
-            String hex = byteToHexString(b);
-            //将转换后的值放入StringBuffer中
-            sb.append(hex);
+        boolean bValid = true;
+        final StringBuilder buf = new StringBuilder(name.length());
+        for (int scan = 0; scan < name.length(); ++scan) {
+            if (scan == 0) {
+                bValid = XMLChar.isNCNameStart((int)name.charAt(scan));
+            }
+            else {
+                bValid = XMLChar.isNCName((int)name.charAt(scan));
+            }
+            buf.append(bValid ? name.charAt(scan) : '_');
         }
-        return sb.toString();
+        return buf.toString();
     }
-
-    /**
-     * 将byte转在16进制字符串
-     */
-    private static String byteToHexString(byte b) {//-31转成e1，10转成0a，。。。
-        //将byte类型赋给int类型
-        int n = b;
-        //如果n是负数
-        if (n < 0) {
-            //转正数
-            //-31的16进制数，等价于求225的16进制数
-            n = 256 + n;
+	
+    private static String byteArrayToHexString(final byte[] bytes) {
+        final StringBuilder out = new StringBuilder();
+        for (int i = 0; i < bytes.length; ++i) {
+            final int highBits = (bytes[i] & 0xF0) >> 4;
+            final int lowBits = bytes[i] & 0xF;
+            if (highBits > 9) {
+                switch (highBits) {
+                    case 10: {
+                        out.append("a");
+                        break;
+                    }
+                    case 11: {
+                        out.append("b");
+                        break;
+                    }
+                    case 12: {
+                        out.append("c");
+                        break;
+                    }
+                    case 13: {
+                        out.append("d");
+                        break;
+                    }
+                    case 14: {
+                        out.append("e");
+                        break;
+                    }
+                    case 15: {
+                        out.append("f");
+                        break;
+                    }
+                }
+            }
+            else {
+                out.append(highBits);
+            }
+            if (lowBits > 9) {
+                switch (lowBits) {
+                    case 10: {
+                        out.append("a");
+                        break;
+                    }
+                    case 11: {
+                        out.append("b");
+                        break;
+                    }
+                    case 12: {
+                        out.append("c");
+                        break;
+                    }
+                    case 13: {
+                        out.append("d");
+                        break;
+                    }
+                    case 14: {
+                        out.append("e");
+                        break;
+                    }
+                    case 15: {
+                        out.append("f");
+                        break;
+                    }
+                }
+            }
+            else {
+                out.append(lowBits);
+            }
         }
-        //商(14)，数组的下标
-        int d1 = n / 16;
-        //余(1)，数组的下标
-        int d2 = n % 16;
-        //通过下标取值
-        return hex[d1] + hex[d2];
-    }
-
-    private static String[] hex = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"};
-
-    /**
-     * 测试
-     */
-    public static void main(String[] args) throws Exception {
-        String password = "123456";
-        String passwordMD5 = Md5Utils.encodeByMd5(password);
-        System.out.println(password);
-        System.out.println(passwordMD5);
+        return out.toString();
     }
 }
